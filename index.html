@@ -1,0 +1,861 @@
+<title>QR Code Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --bg: #fafaf8;
+  --bg-surface: #ffffff;
+  --bg-code: #f0efe8;
+  --fg: #2c2c28;
+  --fg-dim: #8a8880;
+  --fg-bright: #1a1a18;
+  --accent: #2563eb;
+  --accent-dim: #dbeafe;
+  --green: #16a34a;
+  --green-dim: #dcfce7;
+  --red: #dc2626;
+  --red-dim: #fee2e2;
+  --orange: #d97706;
+  --orange-dim: #fef3c7;
+  --purple: #7c3aed;
+  --purple-dim: #ede9fe;
+  --border: #e5e4dc;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141410;
+    --bg-surface: #1e1e1a;
+    --bg-code: #252520;
+    --fg: #d4d4c8;
+    --fg-dim: #7a7a6e;
+    --fg-bright: #eeeee4;
+    --accent: #60a5fa;
+    --accent-dim: #1e3a5f;
+    --green: #4ade80;
+    --green-dim: #14332a;
+    --red: #f87171;
+    --red-dim: #3f1a1a;
+    --orange: #fbbf24;
+    --orange-dim: #3d2e0a;
+    --purple: #a78bfa;
+    --purple-dim: #2e1f5e;
+    --border: #333328;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141410;
+  --bg-surface: #1e1e1a;
+  --bg-code: #252520;
+  --fg: #d4d4c8;
+  --fg-dim: #7a7a6e;
+  --fg-bright: #eeeee4;
+  --accent: #60a5fa;
+  --accent-dim: #1e3a5f;
+  --green: #4ade80;
+  --green-dim: #14332a;
+  --red: #f87171;
+  --red-dim: #3f1a1a;
+  --orange: #fbbf24;
+  --orange-dim: #3d2e0a;
+  --purple: #a78bfa;
+  --purple-dim: #2e1f5e;
+  --border: #333328;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 60px;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.wrap { max-width: 760px; margin: 0 auto; }
+
+h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--fg-bright);
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+.subtitle { color: var(--fg-dim); font-size: 0.9rem; margin: 0 0 28px; }
+
+.input-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+.input-bar label { font-size: 0.85rem; color: var(--fg-dim); font-weight: 500; white-space: nowrap; }
+.input-bar input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1rem;
+  padding: 8px 14px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--fg-bright);
+  width: 200px;
+  outline: none;
+  transition: border-color .15s;
+}
+.input-bar input:focus { border-color: var(--accent); }
+.input-bar button {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.input-bar button:hover { opacity: .85; }
+
+.step {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+.step-header:hover { background: var(--bg-code); }
+.step-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.step-title { font-weight: 600; color: var(--fg-bright); font-size: 0.95rem; flex: 1; min-width: 0; }
+.step-arrow { color: var(--fg-dim); font-size: 0.8rem; transition: transform .2s; flex-shrink: 0; }
+.step.open .step-arrow { transform: rotate(90deg); }
+.step-body { padding: 0 18px 18px; display: none; }
+.step.open .step-body { display: block; }
+
+.step:nth-child(1) .step-num { background: var(--accent-dim); color: var(--accent); }
+.step:nth-child(2) .step-num { background: var(--green-dim); color: var(--green); }
+.step:nth-child(3) .step-num { background: var(--orange-dim); color: var(--orange); }
+.step:nth-child(4) .step-num { background: var(--purple-dim); color: var(--purple); }
+.step:nth-child(5) .step-num { background: var(--red-dim); color: var(--red); }
+.step:nth-child(6) .step-num { background: var(--green-dim); color: var(--green); }
+.step:nth-child(7) .step-num { background: var(--accent-dim); color: var(--accent); }
+.step:nth-child(8) .step-num { background: var(--orange-dim); color: var(--orange); }
+
+code, .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+
+.code-block {
+  background: var(--bg-code);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  line-height: 1.8;
+  margin: 10px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-width: 0;
+}
+
+.explain {
+  font-size: 0.88rem;
+  color: var(--fg);
+  margin: 8px 0;
+  line-height: 1.8;
+}
+
+.tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.tag-blue { background: var(--accent-dim); color: var(--accent); }
+.tag-green { background: var(--green-dim); color: var(--green); }
+.tag-orange { background: var(--orange-dim); color: var(--orange); }
+.tag-red { background: var(--red-dim); color: var(--red); }
+.tag-purple { background: var(--purple-dim); color: var(--purple); }
+
+.bit-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin: 6px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+}
+.bit {
+  width: 20px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.bit-mode { background: var(--accent-dim); color: var(--accent); }
+.bit-count { background: var(--green-dim); color: var(--green); }
+.bit-data { background: var(--orange-dim); color: var(--orange); }
+.bit-term { background: var(--red-dim); color: var(--red); }
+.bit-pad { background: var(--bg-code); color: var(--fg-dim); }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 10px 0;
+  font-variant-numeric: tabular-nums;
+}
+table.data-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--bg-code);
+  color: var(--fg-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+}
+table.data-table tr:last-child td { border-bottom: none; }
+
+.tbl-wrap { overflow-x: auto; min-width: 0; }
+
+.arrow-down {
+  text-align: center;
+  color: var(--fg-dim);
+  font-size: 1.2rem;
+  margin: 8px 0;
+}
+
+.qr-matrix-wrap { overflow-x: auto; margin: 12px 0; min-width: 0; }
+.qr-matrix {
+  display: inline-grid;
+  gap: 0;
+  border: 2px solid var(--border);
+}
+.qr-cell { width: 14px; height: 14px; }
+.qr-cell.black { background: var(--fg-bright); }
+.qr-cell.white { background: var(--bg-surface); }
+.qr-cell.finder { background: var(--accent); }
+.qr-cell.timing { background: var(--green); }
+.qr-cell.format-cell { background: var(--orange); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 0.78rem;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--border); }
+
+.final-qr { text-align: center; margin: 16px 0; }
+.final-qr canvas {
+  border: 8px solid var(--bg-surface);
+  box-shadow: 0 2px 12px rgba(0,0,0,.1);
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+</style>
+
+<div class="wrap">
+  <h1>QR Code Encoding Walkthrough</h1>
+  <p class="subtitle">Enter any string and watch every intermediate value from raw data to the final QR code</p>
+
+  <div class="input-bar">
+    <label>Input:</label>
+    <input id="dataInput" type="text" value="Hello42" placeholder="Letters, digits, symbols">
+    <button onclick="run()">Encode ▶</button>
+  </div>
+
+  <div id="steps"></div>
+</div>
+
+<script>
+const GF_EXP = new Uint8Array(512);
+const GF_LOG = new Uint8Array(256);
+(function() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF_EXP[i] = x;
+    GF_LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11d;
+  }
+  for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+})();
+
+function gfMul(a, b) {
+  if (a === 0 || b === 0) return 0;
+  return GF_EXP[GF_LOG[a] + GF_LOG[b]];
+}
+
+function rsGenPoly(n) {
+  let g = [1];
+  for (let i = 0; i < n; i++) {
+    const ng = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++) {
+      ng[j] ^= g[j];
+      ng[j + 1] ^= gfMul(g[j], GF_EXP[i]);
+    }
+    g = ng;
+  }
+  return g;
+}
+
+function rsEncode(data, n) {
+  const gen = rsGenPoly(n);
+  const res = new Array(data.length + n).fill(0);
+  for (let i = 0; i < data.length; i++) res[i] = data[i];
+  for (let i = 0; i < data.length; i++) {
+    const c = res[i];
+    if (c !== 0) {
+      for (let j = 1; j < gen.length; j++) res[i + j] ^= gfMul(gen[j], c);
+    }
+  }
+  return res.slice(data.length);
+}
+
+const ALPHANUM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
+
+function detectMode(s) {
+  if (/^\d+$/.test(s)) return 'numeric';
+  if ([...s].every(c => ALPHANUM_CHARS.includes(c))) return 'alphanumeric';
+  return 'byte';
+}
+
+const VERSION_INFO = {
+  '1-M': { dataCW: 16, ecCW: 10, numericCap: 34, alphaCap: 20, byteCap: 14, size: 21, countBitsNum: 10, countBitsAlpha: 9, countBitsByte: 8, alignments: [] },
+  '2-M': { dataCW: 28, ecCW: 16, numericCap: 63, alphaCap: 38, byteCap: 26, size: 25, countBitsNum: 10, countBitsAlpha: 9, countBitsByte: 16, alignments: [6, 18] },
+};
+
+function chooseVersion(mode, len) {
+  for (const key of ['1-M', '2-M']) {
+    const v = VERSION_INFO[key];
+    const cap = mode === 'numeric' ? v.numericCap : mode === 'alphanumeric' ? v.alphaCap : v.byteCap;
+    if (len <= cap) return { version: parseInt(key), ...v };
+  }
+  return null;
+}
+
+function pad(s, n) { return s.padStart(n, '0'); }
+function toByte(bits) {
+  const r = [];
+  for (let i = 0; i < bits.length; i += 8) r.push(parseInt(bits.slice(i, i + 8), 2));
+  return r;
+}
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function encodeNumeric(digits, countLen) {
+  const modeInd = '0001';
+  const countBits = pad(digits.length.toString(2), countLen);
+  const groups = [];
+  let dataBits = '';
+  for (let i = 0; i < digits.length; i += 3) {
+    const chunk = digits.slice(i, i + 3);
+    const val = parseInt(chunk, 10);
+    const bl = chunk.length === 3 ? 10 : chunk.length === 2 ? 7 : 4;
+    const b = pad(val.toString(2), bl);
+    groups.push({ display: `"${chunk}"`, val, bitLen: bl, bits: b });
+    dataBits += b;
+  }
+  return { modeInd, modeName: 'Numeric', modeCode: '0001', countBits, groups, dataBits };
+}
+
+function encodeAlphanumeric(s, countLen) {
+  const modeInd = '0010';
+  const countBits = pad(s.length.toString(2), countLen);
+  const groups = [];
+  let dataBits = '';
+  for (let i = 0; i < s.length; i += 2) {
+    const pair = s.slice(i, i + 2);
+    if (pair.length === 2) {
+      const v1 = ALPHANUM_CHARS.indexOf(pair[0]);
+      const v2 = ALPHANUM_CHARS.indexOf(pair[1]);
+      const val = v1 * 45 + v2;
+      const b = pad(val.toString(2), 11);
+      groups.push({ display: `"${pair}"`, detail: `${pair[0]}(${v1}) × 45 + ${pair[1]}(${v2}) = ${val}`, val, bitLen: 11, bits: b });
+      dataBits += b;
+    } else {
+      const v = ALPHANUM_CHARS.indexOf(pair[0]);
+      const b = pad(v.toString(2), 6);
+      groups.push({ display: `"${pair}"`, detail: `${pair[0]}(${v})`, val: v, bitLen: 6, bits: b });
+      dataBits += b;
+    }
+  }
+  return { modeInd, modeName: 'Alphanumeric', modeCode: '0010', countBits, groups, dataBits };
+}
+
+function encodeByte(s, countLen) {
+  const modeInd = '0100';
+  const bytes = new TextEncoder().encode(s);
+  const countBits = pad(bytes.length.toString(2), countLen);
+  const groups = [];
+  let dataBits = '';
+  for (let i = 0; i < bytes.length; i++) {
+    const ch = s.codePointAt(i) <= 127 ? s[i] : '·';
+    const b = pad(bytes[i].toString(2), 8);
+    groups.push({ display: `'${esc(ch)}'`, detail: `ASCII ${bytes[i]} (0x${bytes[i].toString(16).toUpperCase().padStart(2, '0')})`, val: bytes[i], bitLen: 8, bits: b });
+    dataBits += b;
+  }
+  return { modeInd, modeName: 'Byte', modeCode: '0100', countBits, groups, dataBits, byteLen: bytes.length };
+}
+
+function run() {
+  const raw = document.getElementById('dataInput').value;
+  if (!raw) { document.getElementById('steps').innerHTML = '<p style="color:var(--red)">Please enter some data.</p>'; return; }
+
+  const mode = detectMode(raw);
+  const inputLen = mode === 'byte' ? new TextEncoder().encode(raw).length : raw.length;
+  const vi = chooseVersion(mode, inputLen);
+  if (!vi) {
+    document.getElementById('steps').innerHTML = '<p style="color:var(--red)">Input too long for Version 2-M. Please shorten it.</p>';
+    return;
+  }
+
+  const { version, dataCW: totalDataCW, ecCW: totalECCW, size } = vi;
+  const totalBits = totalDataCW * 8;
+
+  const countLen = mode === 'numeric' ? vi.countBitsNum : mode === 'alphanumeric' ? vi.countBitsAlpha : vi.countBitsByte;
+  const enc = mode === 'numeric' ? encodeNumeric(raw, countLen)
+            : mode === 'alphanumeric' ? encodeAlphanumeric(raw, countLen)
+            : encodeByte(raw, countLen);
+
+  let bitstream = enc.modeInd + enc.countBits + enc.dataBits;
+  const termLen = Math.min(4, totalBits - bitstream.length);
+  const terminator = '0'.repeat(termLen);
+  bitstream += terminator;
+  const padToByte = (8 - (bitstream.length % 8)) % 8;
+  bitstream += '0'.repeat(padToByte);
+  const padCWNeeded = totalDataCW - bitstream.length / 8;
+  let padCWBits = '';
+  for (let i = 0; i < padCWNeeded; i++) padCWBits += (i % 2 === 0) ? '11101100' : '00010001';
+  bitstream += padCWBits;
+
+  const dataCodewords = toByte(bitstream);
+  const ecCodewords = rsEncode(dataCodewords, totalECCW);
+  const finalSeq = [...dataCodewords, ...ecCodewords];
+  const allBits = finalSeq.map(b => pad(b.toString(2), 8)).join('');
+
+  const matrix = Array.from({ length: size }, () => Array(size).fill(0));
+  const funcMask = Array.from({ length: size }, () => Array(size).fill(false));
+
+  function setF(r, c, v) { if (r >= 0 && r < size && c >= 0 && c < size) { matrix[r][c] = v; funcMask[r][c] = true; } }
+
+  function drawFinder(sr, sc) {
+    for (let r = -1; r <= 7; r++) for (let c = -1; c <= 7; c++) {
+      const rr = sr + r, cc = sc + c;
+      if (rr < 0 || rr >= size || cc < 0 || cc >= size) continue;
+      let v = 0;
+      if (r >= 0 && r <= 6 && c >= 0 && c <= 6) {
+        if (r === 0 || r === 6 || c === 0 || c === 6) v = 1;
+        else if (r >= 2 && r <= 4 && c >= 2 && c <= 4) v = 1;
+      }
+      setF(rr, cc, v);
+    }
+  }
+  drawFinder(0, 0);
+  drawFinder(0, size - 7);
+  drawFinder(size - 7, 0);
+
+  if (vi.alignments.length >= 2) {
+    const positions = vi.alignments;
+    for (const ar of positions) for (const ac of positions) {
+      if ((ar < 9 && ac < 9) || (ar < 9 && ac > size - 9) || (ar > size - 9 && ac < 9)) continue;
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) {
+        const v = (Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0)) ? 1 : 0;
+        setF(ar + dr, ac + dc, v);
+      }
+    }
+  }
+
+  for (let i = 8; i < size - 8; i++) {
+    setF(6, i, i % 2 === 0 ? 1 : 0);
+    setF(i, 6, i % 2 === 0 ? 1 : 0);
+  }
+  setF(size - 8, 8, 1);
+
+  for (let i = 0; i < 8; i++) {
+    if (!funcMask[8][i]) setF(8, i, 0);
+    if (!funcMask[8][size - 1 - i]) setF(8, size - 1 - i, 0);
+    if (!funcMask[i][8]) setF(i, 8, 0);
+    if (!funcMask[size - 1 - i][8]) setF(size - 1 - i, 8, 0);
+  }
+  if (!funcMask[8][8]) setF(8, 8, 0);
+
+  let bitIdx = 0;
+  let right = size - 1;
+  let upward = true;
+  const dataCells = [];
+  while (right >= 0) {
+    if (right === 6) right--;
+    const rows = upward
+      ? Array.from({ length: size }, (_, i) => size - 1 - i)
+      : Array.from({ length: size }, (_, i) => i);
+    for (const row of rows) {
+      for (const col of [right, right - 1]) {
+        if (col < 0 || col >= size) continue;
+        if (funcMask[row][col]) continue;
+        const bit = bitIdx < allBits.length ? parseInt(allBits[bitIdx]) : 0;
+        matrix[row][col] = bit;
+        dataCells.push({ row, col, bit, bitIdx });
+        bitIdx++;
+      }
+    }
+    upward = !upward;
+    right -= 2;
+  }
+
+  const MASK_FNS = [
+    (r, c) => (r + c) % 2 === 0,
+    (r, c) => r % 2 === 0,
+    (r, c) => c % 3 === 0,
+    (r, c) => (r + c) % 3 === 0,
+    (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+    (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+    (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+    (r, c) => (((r + c) % 2) + ((r * c) % 3)) % 2 === 0,
+  ];
+  const MASK_FORMULAS = [
+    '(row + col) % 2 == 0',
+    'row % 2 == 0',
+    'col % 3 == 0',
+    '(row + col) % 3 == 0',
+    '(row/2 + col/3) % 2 == 0',
+    '(row*col)%2 + (row*col)%3 == 0',
+    '((row*col)%2 + (row*col)%3) % 2 == 0',
+    '((row+col)%2 + (row*col)%3) % 2 == 0',
+  ];
+
+  const FORMAT_INFO_STRINGS = [
+    '101010000010010', '101000100100101', '101111001111100', '101101101001011',
+    '100010111111001', '100000011001110', '100111110010111', '100101010100000',
+  ];
+
+  function penalty(mat) {
+    let score = 0;
+    for (let r = 0; r < size; r++) {
+      let cnt = 1;
+      for (let c = 1; c < size; c++) {
+        if (mat[r][c] === mat[r][c - 1]) cnt++;
+        else { if (cnt >= 5) score += cnt - 2; cnt = 1; }
+      }
+      if (cnt >= 5) score += cnt - 2;
+    }
+    for (let c = 0; c < size; c++) {
+      let cnt = 1;
+      for (let r = 1; r < size; r++) {
+        if (mat[r][c] === mat[r - 1][c]) cnt++;
+        else { if (cnt >= 5) score += cnt - 2; cnt = 1; }
+      }
+      if (cnt >= 5) score += cnt - 2;
+    }
+    for (let r = 0; r < size - 1; r++) for (let c = 0; c < size - 1; c++) {
+      const v = mat[r][c];
+      if (v === mat[r][c + 1] && v === mat[r + 1][c] && v === mat[r + 1][c + 1]) score += 3;
+    }
+    let dark = 0;
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (mat[r][c]) dark++;
+    const pct = dark / (size * size) * 100;
+    score += Math.floor(Math.abs(pct - 50) / 5) * 10;
+    return score;
+  }
+
+  function applyMask(maskIdx) {
+    const m = matrix.map(r => [...r]);
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+      if (!funcMask[r][c] && MASK_FNS[maskIdx](r, c)) m[r][c] ^= 1;
+    }
+    const fmtBits = FORMAT_INFO_STRINGS[maskIdx].split('').map(Number);
+    const fp1 = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+    const fp2 = [[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+    for (let i = 0; i < 15; i++) {
+      m[fp1[i][0]][fp1[i][1]] = fmtBits[i];
+      m[fp2[i][0]][fp2[i][1]] = fmtBits[i];
+    }
+    return m;
+  }
+
+  let bestMask = 0, bestPenalty = Infinity;
+  const penalties = [];
+  for (let i = 0; i < 8; i++) {
+    const m = applyMask(i);
+    const p = penalty(m);
+    penalties.push(p);
+    if (p < bestPenalty) { bestPenalty = p; bestMask = i; }
+  }
+  const maskedMatrix = applyMask(bestMask);
+
+  // ─── Render ───
+  const el = document.getElementById('steps');
+  let h = '';
+
+  const modeExplain = mode === 'numeric' ? 'All digits &rarr; Numeric mode (most efficient)'
+    : mode === 'alphanumeric' ? 'Uppercase + digits + a few symbols &rarr; Alphanumeric mode'
+    : 'Contains lowercase or other characters &rarr; Byte mode (per-byte encoding)';
+  const cap = mode === 'numeric' ? vi.numericCap : mode === 'alphanumeric' ? vi.alphaCap : vi.byteCap;
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">1</div><div class="step-title">Choose Mode & Version</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">
+    <p class="explain">Input <code>"${esc(raw)}"</code> &mdash; ${modeExplain}</p>
+    <div class="tbl-wrap"><table class="data-table">
+      <tr><th>Parameter</th><th>Value</th><th>Notes</th></tr>
+      <tr><td>Mode</td><td><span class="tag tag-blue">${enc.modeName}</span></td><td>Mode indicator = ${enc.modeCode}</td></tr>
+      <tr><td>EC Level</td><td>M (15%)</td><td>Can recover ~15% damage</td></tr>
+      <tr><td>Version</td><td>Version ${version}</td><td>${size}&times;${size}, ${enc.modeName}-M capacity ${cap}, enough for ${inputLen}</td></tr>
+      <tr><td>Data CW</td><td>${totalDataCW}</td><td>${totalDataCW * 8} bits of data capacity</td></tr>
+      <tr><td>EC CW</td><td>${totalECCW}</td><td>Reed-Solomon redundancy</td></tr>
+    </table></div>
+  </div></div>`;
+
+  // STEP 2
+  let groupHtml = '';
+  const colHeaders = mode === 'byte'
+    ? '<tr><th>#</th><th>Char</th><th>Detail</th><th>Value</th><th>Bits</th><th>Binary</th></tr>'
+    : mode === 'alphanumeric'
+    ? '<tr><th>Group</th><th>Chars</th><th>Calculation</th><th>Value</th><th>Bits</th><th>Binary</th></tr>'
+    : '<tr><th>Group</th><th>Chars</th><th>Decimal</th><th>Bits</th><th>Binary</th></tr>';
+
+  enc.groups.forEach((g, i) => {
+    if (mode === 'numeric') {
+      groupHtml += `<tr><td>${i + 1}</td><td>${g.display}</td><td>${g.val}</td><td>${g.bitLen}</td><td><code>${g.bits}</code></td></tr>`;
+    } else {
+      groupHtml += `<tr><td>${i + 1}</td><td>${g.display}</td><td>${g.detail || ''}</td><td>${g.val}</td><td>${g.bitLen}</td><td><code>${g.bits}</code></td></tr>`;
+    }
+  });
+
+  const modeDesc = mode === 'numeric'
+    ? 'Every 3 digits &rarr; 10 bits, 2 digits &rarr; 7 bits, 1 digit &rarr; 4 bits'
+    : mode === 'alphanumeric'
+    ? 'Pairs of characters: first &times; 45 + second &rarr; 11 bits; odd one &rarr; 6 bits'
+    : 'Each character &rarr; its UTF-8 byte value &rarr; 8 bits';
+
+  let bitViz = '<div class="bit-row">';
+  for (const ch of enc.modeInd) bitViz += `<div class="bit bit-mode">${ch}</div>`;
+  for (const ch of enc.countBits) bitViz += `<div class="bit bit-count">${ch}</div>`;
+  for (const ch of enc.dataBits) bitViz += `<div class="bit bit-data">${ch}</div>`;
+  for (const ch of terminator) bitViz += `<div class="bit bit-term">${ch}</div>`;
+  for (let i = 0; i < padToByte; i++) bitViz += `<div class="bit bit-pad">0</div>`;
+  for (const ch of padCWBits) bitViz += `<div class="bit bit-pad">${ch}</div>`;
+  bitViz += '</div>';
+  bitViz += `<div style="display:flex;flex-wrap:wrap;gap:10px;margin:8px 0;font-size:.75rem">
+    <span class="tag tag-blue">Mode ${enc.modeCode}</span>
+    <span class="tag tag-green">Count ${inputLen}</span>
+    <span class="tag tag-orange">Data</span>
+    <span class="tag tag-red">Terminator</span>
+    <span style="color:var(--fg-dim)">■ Padding</span>
+  </div>`;
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">2</div><div class="step-title">Encode Data into Bitstream</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">
+    <p class="explain"><strong>a) Mode indicator</strong> &mdash; ${enc.modeName} = <code>${enc.modeCode}</code></p>
+    <p class="explain"><strong>b) Character count</strong> &mdash; ${inputLen} in ${countLen} bits = <code>${enc.countBits}</code></p>
+    <p class="explain"><strong>c) Data encoding</strong> &mdash; ${modeDesc}:</p>
+    <div class="tbl-wrap"><table class="data-table">${colHeaders}${groupHtml}</table></div>
+    <p class="explain"><strong>d) Terminator</strong> &mdash; <code>${terminator || '(none needed)'}</code> (${termLen} bits)</p>
+    <p class="explain"><strong>e) Pad to byte boundary</strong> &mdash; add ${padToByte} zero bits</p>
+    <p class="explain"><strong>f) Pad codewords</strong> &mdash; alternate 0xEC (236) / 0x11 (17) to fill ${totalDataCW} codewords, need ${padCWNeeded}</p>
+    <div class="arrow-down">↓</div>
+    <p class="explain"><strong>Complete bitstream</strong> (${bitstream.length} bits = ${totalDataCW} codewords):</p>
+    ${bitViz}
+    <div class="arrow-down">↓</div>
+    <p class="explain"><strong>Data codewords:</strong></p>
+    <div class="code-block">Decimal: [${dataCodewords.join(', ')}]
+Hex:     [${dataCodewords.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(', ')}]</div>
+  </div></div>`;
+
+  // STEP 3
+  const genPoly = rsGenPoly(totalECCW);
+  let rsH = `<p class="explain">Version ${version}-M requires <strong>${totalECCW}</strong> error correction codewords.</p>`;
+  rsH += `<p class="explain"><strong>a) Generator polynomial</strong> g(x) = (x&minus;&alpha;⁰)(x&minus;&alpha;¹)&hellip;(x&minus;&alpha;<sup>${totalECCW - 1}</sup>), expanded coefficients:</p>`;
+  rsH += `<div class="code-block">[${genPoly.join(', ')}]</div>`;
+
+  rsH += `<p class="explain"><strong>b) GF(2⁸) polynomial long division</strong> (primitive polynomial 0x11D)</p>`;
+  rsH += `<p class="explain">Divide data polynomial by generator, take remainder. First 3 steps shown:</p>`;
+
+  const dw = new Array(dataCodewords.length + totalECCW).fill(0);
+  for (let i = 0; i < dataCodewords.length; i++) dw[i] = dataCodewords[i];
+  for (let step = 0; step < Math.min(3, dataCodewords.length); step++) {
+    const c = dw[step];
+    const xored = genPoly.slice(0, Math.min(6, genPoly.length)).map(g => gfMul(g, c));
+    for (let j = 0; j < genPoly.length; j++) dw[step + j] ^= gfMul(genPoly[j], c);
+    rsH += `<div class="code-block">Step ${step + 1}: lead coeff = ${c}
+  gen × ${c} = [${xored.join(', ')}${genPoly.length > 6 ? '...' : ''}]
+  After XOR:  [${dw.slice(step + 1, step + Math.min(7, genPoly.length)).join(', ')}...]</div>`;
+  }
+
+  rsH += `<p class="explain"><strong>c) EC codewords result:</strong></p>`;
+  rsH += `<div class="code-block">Decimal: [${ecCodewords.join(', ')}]
+Hex:     [${ecCodewords.map(b => '0x' + b.toString(16).toUpperCase().padStart(2, '0')).join(', ')}]</div>`;
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">3</div><div class="step-title">Reed-Solomon Error Correction</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">${rsH}</div></div>`;
+
+  // STEP 4
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">4</div><div class="step-title">Final Codeword Sequence</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">
+    <p class="explain">Version ${version} has only 1 data block &mdash; no interleaving needed. Concatenate data + EC:</p>
+    <div class="code-block"><span style="color:var(--accent)">[Data × ${totalDataCW}]</span> ${dataCodewords.join(', ')}
+<span style="color:var(--orange)">[EC × ${totalECCW}]</span> ${ecCodewords.join(', ')}
+
+Total: ${finalSeq.length} codewords = ${finalSeq.length * 8} bits</div>
+    <p class="explain">Expanded to bitstream per codeword:</p>
+    <div class="code-block">${allBits.match(/.{1,8}/g).map((b, i) => {
+      const label = i < totalDataCW ? 'data' : 'EC';
+      return `${(i + '').padStart(2, ' ')}: ${b} = ${parseInt(b, 2).toString().padStart(3, ' ')} (0x${parseInt(b, 2).toString(16).toUpperCase().padStart(2, '0')}) ${label}`;
+    }).join('\n')}</div>
+  </div></div>`;
+
+  // STEP 5
+  let fH = `<p class="explain">Place fixed structures on the ${size}&times;${size} matrix:</p>`;
+  fH += `<div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--accent)"></div> Finder</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--green)"></div> Timing</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--orange)"></div> Format Info</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:var(--bg-code);border-color:var(--fg-dim)"></div> Data Area</div>
+  </div>`;
+
+  const regM = Array.from({ length: size }, () => Array(size).fill('data'));
+  function markR(sr, sc, type, w, h2) {
+    for (let r = 0; r < (h2 || w); r++) for (let c = 0; c < w; c++) {
+      const rr = sr + r, cc = sc + c;
+      if (rr >= 0 && rr < size && cc >= 0 && cc < size) regM[rr][cc] = type;
+    }
+  }
+  markR(0, 0, 'finder', 8, 8); markR(0, size - 8, 'finder', 8, 8); markR(size - 8, 0, 'finder', 8, 8);
+  for (let i = 8; i < size - 8; i++) { regM[6][i] = 'timing'; regM[i][6] = 'timing'; }
+  if (vi.alignments.length >= 2) {
+    for (const ar of vi.alignments) for (const ac of vi.alignments) {
+      if ((ar < 9 && ac < 9) || (ar < 9 && ac > size - 9) || (ar > size - 9 && ac < 9)) continue;
+      for (let dr = -2; dr <= 2; dr++) for (let dc = -2; dc <= 2; dc++) regM[ar + dr][ac + dc] = 'align';
+    }
+  }
+  const fp1 = [[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  const fp2 = [[size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8],[8,size-8],[8,size-7],[8,size-6],[8,size-5],[8,size-4],[8,size-3],[8,size-2],[8,size-1]];
+  fp1.forEach(([r, c]) => { if (regM[r][c] === 'data') regM[r][c] = 'format'; });
+  fp2.forEach(([r, c]) => { if (regM[r][c] === 'data') regM[r][c] = 'format'; });
+
+  fH += `<div class="qr-matrix-wrap"><div class="qr-matrix" style="grid-template-columns:repeat(${size},14px)">`;
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    const reg = regM[r][c];
+    let cls = 'qr-cell ';
+    if (reg === 'finder' || reg === 'align') {
+      cls += funcMask[r][c] && matrix[r][c] === 1 ? 'finder' : 'white';
+    } else if (reg === 'timing') {
+      cls += matrix[r][c] === 1 ? 'timing' : 'white';
+    } else if (reg === 'format') {
+      cls += 'format-cell';
+    } else {
+      cls += (matrix[r][c] === 1 ? 'black' : 'white');
+    }
+    fH += `<div class="${cls}"></div>`;
+  }
+  fH += '</div></div>';
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">5</div><div class="step-title">Functional Pattern Layout</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">${fH}</div></div>`;
+
+  // STEP 6
+  let pH = `<p class="explain">Data bits are placed in a <strong>serpentine path</strong>: starting from the bottom-right, two columns at a time, alternating upward and downward.</p>`;
+  pH += `<div class="code-block">First 20 data bit placements:
+${dataCells.slice(0, 20).map((c, i) => `  bit[${(i + '').padStart(2)}] = ${c.bit}  → matrix[${(c.row + '').padStart(2)},${(c.col + '').padStart(2)}]`).join('\n')}
+  ...${dataCells.length} data bits total</div>`;
+  pH += '<p class="explain">Matrix after filling (before masking):</p>';
+  pH += `<div class="qr-matrix-wrap"><div class="qr-matrix" style="grid-template-columns:repeat(${size},14px)">`;
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    pH += `<div class="qr-cell ${matrix[r][c] === 1 ? 'black' : 'white'}"></div>`;
+  }
+  pH += '</div></div>';
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">6</div><div class="step-title">Serpentine Data Placement</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">${pH}</div></div>`;
+
+  // STEP 7
+  let mH = `<p class="explain">Evaluate all 8 mask patterns by penalty score; pick the lowest:</p>`;
+  mH += `<div class="tbl-wrap"><table class="data-table">
+    <tr><th>Mask</th><th>Formula</th><th>Penalty</th><th></th></tr>`;
+  penalties.forEach((p, i) => {
+    const best = i === bestMask;
+    mH += `<tr${best ? ' style="background:var(--green-dim)"' : ''}>
+      <td>${i}</td><td style="font-size:.72rem">${MASK_FORMULAS[i]}</td><td>${p}</td>
+      <td>${best ? '<span class="tag tag-green">Best</span>' : ''}</td></tr>`;
+  });
+  mH += '</table></div>';
+  mH += `<p class="explain">Selected <strong>Mask ${bestMask}</strong> (penalty ${bestPenalty}), format info <code>${FORMAT_INFO_STRINGS[bestMask]}</code></p>`;
+  mH += '<p class="explain">After masking:</p>';
+  mH += `<div class="qr-matrix-wrap"><div class="qr-matrix" style="grid-template-columns:repeat(${size},14px)">`;
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    mH += `<div class="qr-cell ${maskedMatrix[r][c] === 1 ? 'black' : 'white'}"></div>`;
+  }
+  mH += '</div></div>';
+
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">7</div><div class="step-title">Mask Selection & Format Info</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">${mH}</div></div>`;
+
+  // STEP 8
+  h += `<div class="step open"><div class="step-header" onclick="toggleStep(this)">
+    <div class="step-num">8</div><div class="step-title">Final QR Code</div><div class="step-arrow">▶</div>
+  </div><div class="step-body">
+    <p class="explain">Add a 4-module quiet zone and render the final code:</p>
+    <div class="final-qr"><canvas id="qrCanvas"></canvas></div>
+    <p class="explain" style="text-align:center;color:var(--fg-dim);font-size:.82rem">Scan to verify &mdash; should read "${esc(raw)}"</p>
+  </div></div>`;
+
+  el.innerHTML = h;
+
+  const cv = document.getElementById('qrCanvas');
+  const q = 4, cs = 8, ts = (size + q * 2) * cs;
+  cv.width = ts; cv.height = ts;
+  cv.style.width = Math.min(ts, 300) + 'px';
+  cv.style.height = Math.min(ts, 300) + 'px';
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, ts, ts);
+  cx.fillStyle = '#000';
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    if (maskedMatrix[r][c] === 1) cx.fillRect((c + q) * cs, (r + q) * cs, cs, cs);
+  }
+}
+
+function toggleStep(hdr) { hdr.parentElement.classList.toggle('open'); }
+
+run();
+</script>
